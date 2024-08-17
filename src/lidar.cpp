@@ -150,6 +150,9 @@ int convertToPolarMap(RAWDATA* rawdata,POLAR_DATA* polardata){
         polardata[i].angle=static_cast<double>(rawdata->angle_begin+deltaangle*i);
         polardata[i].distance=static_cast<double>(rawdata->distance[i]);
     }
+    #ifdef DEBUG
+    printPolarData(polardata,16);
+    #endif
     return 0;
 }
 

@@ -3,11 +3,12 @@
 #include "lidar.h"
 
 #include <cmath>
-#include <GL/glut.h>//graphic関係
+#include <GL/freeglut.h>//graphic関係
 #include <unistd.h>//close(),serialport関係で利用
 #include <termios.h>//serialport関係で利用
 
 #define DISPLAYBUFFSIZE 1024
+#define DEBUG
 
 LIDARPAYLOAD payload;
 RAWDATA rawdata;
@@ -18,7 +19,9 @@ POLAR_DATA display_polardata_buff[DISPLAYBUFFSIZE];
 int que_en=0;
 
 //グラフィック関係
+double zoomScale = 1.0; // ズームレベルの初期値は1.0（変更なし）
 void keyboard(unsigned char key,int x,int y);
+void mouse(int button, int state, int x, int y);
 void updateData();
 void initOpenGL();
 void reshape(int width, int height);
@@ -30,8 +33,15 @@ int main(int argc,char **argv) {
 
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
-    glutInitWindowSize(800, 800);
-    glutInitWindowPosition(100, 100);
+    int screenWidth = glutGet(GLUT_SCREEN_WIDTH);
+    int screenHeight = glutGet(GLUT_SCREEN_HEIGHT);
+    int windowWidth = screenWidth * 0.4;
+    int windowHeight = screenHeight * 0.4;
+    int windowPosX = (screenWidth - windowWidth) / 2;
+    int windowPosY = (screenHeight - windowHeight) / 2;
+
+    glutInitWindowSize(windowWidth, windowHeight);
+    glutInitWindowPosition(windowPosX, windowPosY);
     glutCreateWindow("LiDAR Polar Plot");
     initOpenGL();
     glutDisplayFunc(display);
@@ -44,7 +54,7 @@ int main(int argc,char **argv) {
 
 void initOpenGL() {
     glClearColor(0.0, 0.0, 0.0, 0.0); // Black background
-    gluOrtho2D(-2000.0, 2000.0, -2000.0, 2000.0); // Set the coordinate system
+    gluOrtho2D(-2000.0, 2000.0, -2000.0, 2000.0);
 }
 
 void reshape(int width, int height) {
@@ -56,17 +66,14 @@ void reshape(int width, int height) {
     glLoadIdentity();
     
     // ウィンドウサイズに基づいて拡大するための設定
-    double maxDistance = 10000.0; // 最大距離
+    double maxDistance = 10000.0*zoomScale; // 最大表示距離;
     double aspectRatio = (double)width / (double)height;
 
     if (width >= height) {
-        // 横長の場合
         gluOrtho2D(-maxDistance * aspectRatio, maxDistance * aspectRatio, -maxDistance, maxDistance);
     } else {
-        // 縦長の場合
         gluOrtho2D(-maxDistance, maxDistance, -maxDistance / aspectRatio, maxDistance / aspectRatio);
     }
-
     // モデルビューマトリックスモードに戻る
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
@@ -81,10 +88,14 @@ void display(void) {
     glBegin(GL_POINTS);
     for (int i = 0; i < DISPLAYBUFFSIZE; i++) {
         double angle_radians = display_polardata_buff[i].angle * PI / 180.0;
-        double x = display_polardata_buff[i].distance * cos(angle_radians);
-        double y = display_polardata_buff[i].distance * sin(angle_radians);
+        double x = display_polardata_buff[i].distance * cos(angle_radians)*zoomScale;
+        double y = display_polardata_buff[i].distance * sin(angle_radians)*zoomScale;
         glVertex2d(x, y);
     }
+    glEnd();
+    glColor3f(1.0, 0.0, 0.0); // 赤色を設定
+    glBegin(GL_POINTS);
+    glVertex2d(0.0, 0.0); // 0,0 の位置に点を描画
     glEnd();
     glutSwapBuffers();
     // 画面を再描画
@@ -95,6 +106,12 @@ void keyboard(unsigned char key,int x,int y){
     switch(key){
         case '\033': /* '\033' は ESC の ASCII コード*/
             exit(0);
+        case 'a':
+            zoomScale*=1.2;
+            break;
+        case 'd':
+            zoomScale/=1.2;
+            break;
         default:
             break;
     }
@@ -118,6 +135,7 @@ void queue(POLAR_DATA* comingdata,POLAR_DATA* display_polardata_buff){
         }
     }
 }
+
 /**
  * @brief ディスプレイ表示する点の情報を更新，ディスプレイ用のバッファを更新
  */

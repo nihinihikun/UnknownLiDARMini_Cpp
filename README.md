@@ -42,12 +42,13 @@ sudo ./MyApp
 ```
 
 ## 使用方法
-ESCキーを押すと終了します
+- ESCキーを押すと終了します
+- AとDを押すと拡大・縮小できます
 
 ## 変更点
 - typeのpacketの定義のheaderを削除
 - その他もろもろ変更
-- このLiDARのエンコードに関する点は参考元を流用・変更・利用している
+- このLiDARのエンコードに関する点は参考元を流用・変更・利用しています
 
 ## 参考元
 https://github.com/yishii/LiDAR_Camsense_X1_M5Stack
